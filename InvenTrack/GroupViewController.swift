@@ -14,6 +14,7 @@ class GroupViewController: UIViewController {
         tableView.backgroundColor = Constants.primaryColor
         tableView.sectionIndexColor = Constants.secondaryColor
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
     
@@ -25,7 +26,6 @@ class GroupViewController: UIViewController {
         view.backgroundColor = Constants.primaryColor
         getGroups()
         addSubviews()
-        
         
     }
     func getGroups() {
@@ -41,7 +41,6 @@ class GroupViewController: UIViewController {
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.translatesAutoresizingMaskIntoConstraints = false
     }
     
     override func viewDidLayoutSubviews() {
@@ -53,7 +52,7 @@ class GroupViewController: UIViewController {
         let constraints = [
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 0)
         ]
         NSLayoutConstraint.activate(constraints)
@@ -71,6 +70,36 @@ extension GroupViewController: UITableViewDelegate, UITableViewDataSource {
         return 1
     }
     
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        if indexPath.row == groupModels.count {
+            return false
+        }
+        return true;
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let delete = UIContextualAction(style: .destructive, title: "Delete") { _, _, _ in
+            let data = self.groupModels[indexPath.row]
+            let success:Bool = DBManager.shared.deleteGroupByPK(pk: data.group_id)
+            if success {
+                self.groupModels.remove(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+            }
+            
+        }
+        
+        let edit = UIContextualAction(style: .normal, title: "Edit") { _, _, _ in
+            let data = self.groupModels[indexPath.row]
+            let gsVC = GroupSchemaViewController()
+            gsVC.currentIndex = indexPath.row
+            gsVC.currentGroup = data
+            self.navigationController?.pushViewController(gsVC, animated: true)
+        }
+        
+        let swipeConfig = UISwipeActionsConfiguration(actions: [edit,delete])
+        return swipeConfig
+    }
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         if (indexPath.row == groupModels.count) {
@@ -78,6 +107,11 @@ extension GroupViewController: UITableViewDelegate, UITableViewDataSource {
             gsVC.currentIndex = indexPath.row
             gsVC.currentGroup = nil
             navigationController?.pushViewController(gsVC, animated: true)
+        }
+        else {
+            let vc = ItemViewController()
+            vc.configure(with: groupModels[indexPath.row])
+            self.navigationController?.pushViewController(vc, animated: true)
         }
     }
     

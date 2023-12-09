@@ -7,14 +7,14 @@
 
 import UIKit
 
-class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
-    static let identifier = "GroupTitleTableViewCell"
+class ItemCreateVariableTableViewCell: UITableViewCell, UITextFieldDelegate {
+    static let identifier = "ItemCreateVariableTableViewCell"
     
-    var group: Group?
+    var itemVar: ItemVariables!
     
     private var textChangeWorkItem: DispatchWorkItem?
     
-    var groupTitleLabel: UILabel = {
+    var titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 18, weight: .regular)
         label.numberOfLines = 1;
@@ -23,15 +23,30 @@ class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
         return label;
     }()
     
-    let groupTextView: TextField = {
+    var titleTextView: TextField = {
         let textView = TextField()
         textView.backgroundColor = Constants.primaryColor
+        textView.placeholder = "Enter value"
         textView.tintColor = Constants.tertiaryColor
         textView.textColor = .black
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.font = UIFont.systemFont(ofSize: 16) // Adjust the font size as needed
+        textView.attributedPlaceholder = NSAttributedString(
+            string: "Enter variable name",
+            attributes: [NSAttributedString.Key.foregroundColor: UIColor.darkGray] // Set placeholder color to dark gray
+        )
         return textView
     }()
+    
+    func configure(itemVar: ItemVariables) {
+        self.itemVar = itemVar
+        titleTextView.text = itemVar.iv_text
+        let variable: Variable = DBManager.shared.getVariable(pk: itemVar.iv_variable)!
+        titleLabel.text = variable.variable_name
+        if (variable.variable_type == 0) {
+            titleTextView.keyboardType = .decimalPad
+        }
+    }
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -42,9 +57,9 @@ class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
     }
     
     func addSubviews() {
-        contentView.addSubview(groupTitleLabel)
-        contentView.addSubview(groupTextView)
-        groupTextView.delegate = self
+        contentView.addSubview(titleLabel)
+        contentView.addSubview(titleTextView)
+        titleTextView.delegate = self
     }
     
     
@@ -52,17 +67,17 @@ class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
         super.layoutSubviews()
         
         let titleConstraints = [
-            groupTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            groupTitleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor), // Center vertically
-            groupTitleLabel.widthAnchor.constraint(equalToConstant: 40)
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor), // Center vertically
+            titleLabel.widthAnchor.constraint(equalToConstant: 40)
         ]
         NSLayoutConstraint.activate(titleConstraints)
         
         let textViewConstraints = [
-            groupTextView.leadingAnchor.constraint(equalTo: groupTitleLabel.trailingAnchor, constant: 5),
-            groupTextView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            groupTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            groupTextView.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.50)
+            titleTextView.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 5),
+            titleTextView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            titleTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            titleTextView.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.50)
         ]
         NSLayoutConstraint.activate(textViewConstraints)
     }
@@ -71,17 +86,10 @@ class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configure(groupModel: Group?) {
-        group = groupModel
-
-        if let group = group {
-            groupTextView.text = group.group_title
-        }
-    }
-    
     override func prepareForReuse() {
         super.prepareForReuse()
-        groupTextView.text = ""
+        titleTextView.text = ""
+        titleLabel.text = ""
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
@@ -97,9 +105,9 @@ class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
         
         // Create a new work item with a delay
         textChangeWorkItem = DispatchWorkItem { [weak self] in
-            if let group = self?.group {
-                if let text = textField.text {
-                    self?.group = DBManager.shared.modifyGroupNameByPK(name: text, pk: group.group_id)
+            if let text = textField.text {
+                if let id = self?.itemVar.iv_id {
+                    self?.itemVar = DBManager.shared.modifyItemVariableByPK(text: text, pk: id)
                 }
             }
         }
@@ -108,3 +116,4 @@ class GroupTitleTableViewCell: UITableViewCell, UITextFieldDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: textChangeWorkItem!)
     }
 }
+
